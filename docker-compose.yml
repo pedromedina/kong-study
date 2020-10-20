@@ -1,0 +1,78 @@
+version: "3.8"
+services:
+  kong-database:
+    image: cassandra:3
+    networks:
+      - kong-network
+    ports:
+        - 9042:9042
+  kong:
+    image: kong:latest
+    deploy:
+        restart_policy:
+            condition: any
+    volumes: 
+      - kong-vol:/usr/local/kong/declarative
+    networks:
+      - kong-network
+    environment: 
+      KONG_DATABASE: cassandra
+      KONG_CASSANDRA_CONTACT_POINTS: kong-database
+      KONG_PROXY_ACCESS_LOG: /dev/stdout
+      KONG_ADMIN_ACCESS_LOG: /dev/stdout
+      KONG_PROXY_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_LISTEN: 0.0.0.0:8001, 0.0.0.0:8444 ssl
+    ports:
+        - 8000:8000
+        - 8443:8443
+        - 127.0.0.1:8001:8001
+        - 127.0.0.1:8444:8444
+    depends_on:
+      - kong-database
+  kong-bootstrap:
+    image: kong:latest
+    command: kong migrations bootstrap
+    deploy:
+        restart_policy:
+            condition: none
+    volumes: 
+      - kong-vol:/usr/local/kong/declarative
+    networks:
+      - kong-network
+    environment: 
+      KONG_DATABASE: cassandra
+      KONG_CASSANDRA_CONTACT_POINTS: kong-database
+      KONG_PROXY_ACCESS_LOG: /dev/stdout
+      KONG_ADMIN_ACCESS_LOG: /dev/stdout
+      KONG_PROXY_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_LISTEN: 0.0.0.0:8001, 0.0.0.0:8444 ssl
+    depends_on:
+      - kong-database
+  konga:
+    image: pantsel/konga
+    ports:
+        - 1337:1337
+    networks:
+      - kong-network
+    environment:
+      NODE_ENV: development
+      TOKEN_SECRET: 1da5e212-6334-465b-b922-1acb4b016def
+    depends_on:
+      - kong
+  api:
+    networks:
+      - kong-network
+    build:
+      context: ./sampleAPI
+    ports:
+        - 5000:5000
+networks:
+    kong-network:
+      name: kong-network 
+      driver: bridge
+volumes:
+  kong-vol:
+    name: kong-vol
+    external: false
