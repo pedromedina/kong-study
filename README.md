@@ -1,6 +1,6 @@
 # Kong - Konga
 
-Esse docker-compose executa alguns containers:
+Esse docker-compose executa alguns serviços:
 
 |Nome do serviço | Descrição                                            |
 |----------------| -----------------------------------------------------|
